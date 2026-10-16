@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Run the repository's Yazi config in a disposable native PTY (Unix only)."""
+import argparse
+import re
 import fcntl
 import json
 import os
@@ -110,13 +112,20 @@ end }
 
 def run():
     plugin = Path(__file__).resolve().parent
-    config = plugin.parent.parent
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config-dir', type=Path, default=plugin / 'tests/fixtures/config')
+    config = parser.parse_args().config_dir.resolve()
+    source_config = (config / 'init.lua').read_text()
+    def option(name, default):
+        found = re.search(r'\b' + name + r'\s*=\s*"([^"]+)"', source_config)
+        return found.group(1) if found else default
+    repo_color, owned_color = option('repo_color', 'blue'), option('repo_owned_color', 'blue')
     with tempfile.TemporaryDirectory(prefix="dots-yazi-test-") as temporary:
         root = Path(temporary)
         for name in ("home", "config", "state", "cache", "data", "runtime", "tmp", "work", "outside"):
             (root / name).mkdir()
         cfg = root / "config"
-        shutil.copytree(plugin, cfg / "plugins/dots.yazi")
+        shutil.copytree(plugin, cfg / "plugins/dots.yazi", ignore=shutil.ignore_patterns(".git", ".codex", ".agents", "tests"))
         for name in ("init.lua", "keymap.toml", "yazi.toml"):
             shutil.copyfile(config / name, cfg / name)
         (cfg / "theme.toml").write_text('[indicator]\npadding = { open = "█", close = "█" }\npreview = { underline = true }\n')
@@ -211,7 +220,7 @@ def run():
             state = wait_for(lambda s: s["repo"] == "work" and s["branch"] == "fixture" and s["git_dirs"] > 0)
             assert state["dotline"] and not state["yatline"], state
             assert state["githead_id"] == "dots.githead" and state["projects_id"] == "dots.projects", state
-            assert state["repo_label"] == "󰊤 work" and state["repo_color"] == "green", state
+            assert state["repo_label"] == "󰊤 work" and state["repo_color"] == owned_color, state
             styles = state["file_styles"]
             def active_style(style):
                 return {key: value for key, value in style.items() if value is not False}
@@ -265,12 +274,12 @@ def run():
             print("PASS native startup, module state, Git callbacks/fetcher, pane shortcuts", flush=True)
             # Remote changes are local metadata only; refresh through normal cd callbacks.
             for remote, icon, color in (
-                ("git@github.com:someone-else/work.git", "󰊤", "blue"),
-                ("ssh://git@github-fixture/fixture-owner/work.git", "󰊤", "green"),
-                ("https://gitlab.com/team/subgroup/work.git", "", "green"),
-                ("https://bitbucket.org/fixture-owner/work.git", "", "blue"),
-                ("https://unknown.example/fixture-owner/work.git", "", "blue"),
-                (None, "", "blue"),
+                ("git@github.com:someone-else/work.git", "󰊤", repo_color),
+                ("ssh://git@github-fixture/fixture-owner/work.git", "󰊤", owned_color),
+                ("https://gitlab.com/team/subgroup/work.git", "", owned_color),
+                ("https://bitbucket.org/fixture-owner/work.git", "", repo_color),
+                ("https://unknown.example/fixture-owner/work.git", "", repo_color),
+                (None, "", repo_color),
             ):
                 if remote is None:
                     git("remote", "remove", "origin")

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dots Yazi Ui"
+  short_description: "Maintain themed Yazi UI components"
+  default_prompt: "Use $dots-yazi-ui to handle the requested repository change and its focused verification."

@@ -129,6 +129,13 @@ return {
 			unstaged_color = options.unstaged_color or "bright yellow",
 			untracked_color = options.untracked_color or "bright blue",
 		}
+        this.recolor = function(_, value)
+          value = value.theme or value
+          repo_color = value.repo_color or repo_color
+          repo_owned_color = value.repo_owned_color or repo_owned_color
+          for key in pairs(theme) do if value[key] ~= nil then theme[key] = value[key] end end
+        end
+
 
 		local function render_branch()
 			local branch = this.output.branch

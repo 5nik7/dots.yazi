@@ -3,6 +3,7 @@
 local M = {}
 local rules
 local installed = false
+local snapshot, enabled = nil, true
 local defaults = {
   di = '01;34', ln = '01;36', pi = '33', so = '01;35',
   bd = '01;33', cd = '01;33', ex = '01;32',
@@ -188,8 +189,44 @@ function M.to_style(e)
   for _, method in pairs(attributes) do s = s[method](s, not e.data[method]) end
   return s
 end
+function M:snapshot(doc)
+  snapshot = doc
+  rules = enabled and M.parse(doc and doc.ls_colors or os.getenv("LS_COLORS")) or nil
+end
+local function from_style(style)
+  local data = {}; for k,v in pairs(style) do data[k == 'reversed' and 'reverse' or k] = v end
+  return { data = data }
+end
+local function mime_style(file, custom)
+  if not enabled or not snapshot or not file.mime then return end
+  local mime = file:mime(); if not mime then return end
+  local keys = {}; for key in pairs(snapshot.styles.mime) do keys[#keys+1]=key end
+  table.sort(keys, function(a,b) if (a:find('*',1,true)~=nil) ~= (b:find('*',1,true)~=nil) then return not a:find('*',1,true) end return a<b end)
+  for _,key in ipairs(keys) do
+    local is_custom = false
+    for _,source in pairs(snapshot.provenance.mime[key] or {}) do
+      if not source:match('/default/file%-colors%.toml$') then is_custom=true end
+    end
+    if is_custom == custom and (mime==key or key:sub(-2)=='/*' and mime:sub(1,#key-1)==key:sub(1,-2)) then
+      return from_style(snapshot.styles.mime[key])
+    end
+  end
+end
+local function match_entry(file, as_target)
+  local e = M.resolve(rules, file, as_target)
+  if enabled and snapshot then
+    -- Resolve a core-only copy first so executable/link/device priority stays native.
+    local core = M.resolve({types=rules.types,suffixes={},target=rules.target},file,as_target)
+    if core == rules.types.fi or core == rules.types.no then
+      local explicit = e and e.suffix and snapshot.styles.extension[e.suffix] ~= nil
+      if not explicit then e = mime_style(file,true) or e end
+      if e == core then e = mime_style(file,false) or e end
+    end
+  end
+  return e
+end
 function M:match(file)
-  local e = M.resolve(rules, file)
+  local e = match_entry(file)
   return e and M.to_style(e) or nil
 end
 function M:style(file)
@@ -199,8 +236,8 @@ function M:target_style(file)
   local cha = file.cha
   if rules and cha.is_link and not cha.is_orphan and not cha.is_dummy and file.link_to then
     -- Yazi already carries target metadata; only the displayed basename changes.
-    local target = { cha = cha, name = file.link_to.name or file.name }
-    return M.to_style(M.resolve(rules, target, true))
+    local target = { cha = cha, name = file.link_to.name or file.name, mime = file.mime and function() return file:mime() end }
+    return M.to_style(match_entry(target, true))
   end
   return self:style(file)
 end
@@ -215,7 +252,8 @@ function M:directory_style(file)
 end
 function M:setup(options)
   options = options or {}
-  rules = options.enabled ~= false and M.parse(os.getenv('LS_COLORS')) or nil
+  enabled = options.enabled ~= false
+  rules = enabled and M.parse(snapshot and snapshot.ls_colors or os.getenv('LS_COLORS')) or nil
   if installed then return end
   installed = true
   local original_style, original_icon, original_style_rev = Entity.style, Entity.icon, Entity.style_rev

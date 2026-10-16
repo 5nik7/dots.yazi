@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dots Yazi Validation"
+  short_description: "Validate isolated Yazi behavior and rendering"
+  default_prompt: "Use $dots-yazi-validation to handle the requested repository change and its focused verification."

@@ -16,8 +16,12 @@ require = function(name)
   end
   return modules[name]
 end
+modules['.theme'] = {
+  setup = function(_, options, initial) return initial end,
+  bind = function(_, callback) assert(type(callback)=='function') end,
+}
 local notices = {}
-ya = { notify = function(notice) notices[#notices + 1] = notice end }
+ya = { sync = function(fn) return fn end, notify = function(notice) notices[#notices + 1] = notice end }
 local dots = dofile("main.lua")
 local options = { dotline = { padding = { inner = 2 } }, projects = { notify = { title = "Projects" } } }
 dots:setup(options)

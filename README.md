@@ -1,12 +1,12 @@
 # dots.yazi
 
-One local Yazi plugin for the Dots file-manager configuration. It bundles the active UI, Git, project, sorting, and pane features into this directory. **Dotline** is the bundled renderer derived from Yatline; it draws the header and status line.
+A standalone Yazi plugin for the Dots file-manager configuration. It bundles the active UI, Git, project, sorting, and pane features into this directory. **Dotline** is the bundled renderer derived from Yatline; it draws the header and status line.
 
-The original plugin directories are retained for reference, but the active configuration only loads `dots`. This plugin uses its own bundled sources and does not load those originals.
+This plugin uses its bundled sources and does not load separate copies of its component plugins.
 
 ## Installation and setup
 
-Place this entire directory at `plugins/dots.yazi` inside your Yazi configuration directory. Keep the Lua modules and license files together. This is a repository-local plugin; there is no published `ya pkg add` command for it.
+Place this entire directory at `plugins/dots.yazi` inside your Yazi configuration directory. Keep the Lua modules and upstream attribution together. The main Dots checkout also tracks a bundled copy; update its runtime sources deliberately when changing this repository.
 
 The sources declare Yazi 26.8.15 or newer. Native verification uses **Yazi 26.9.1 on Termux**. Git features require the `git` executable. Optional `git-it` supplies remote host icons and configured repository ownership; ordinary Git labels work without it. Icons and separators use the same Nerd Font glyphs as the existing configuration.
 
@@ -68,7 +68,7 @@ require("dots"):setup({
 })
 ```
 
-The complete personal configuration, including colors, separators, Git indicators, and project events, lives in [init.lua](../../init.lua). Its appearance settings are passed into the plugin, not hardcoded as personal defaults. An omitted section uses that component's defaults. All bundled features initialize; `false` is not a component-disable switch.
+A self-contained configuration, including colors, separators, Git indicators, and project events, lives in [example configuration](tests/fixtures/config/init.lua). Its appearance settings are passed into the plugin, not hardcoded as personal defaults. An omitted section uses that component's defaults. All bundled features initialize; `false` is not a component-disable switch.
 
 ## Components and configuration
 
@@ -132,7 +132,7 @@ The directory prefix uses current-directory metadata already available in the pa
 
 ### LS_COLORS styling
 
-`ls_colors = { enabled = true }` reads the environment Yazi inherits; it never runs `ls`, Vivid, or shell code during rendering. Restart Yazi after shell theme changes. This reads `LS_COLORS`; it does not parse eza-specific theme files or `EZA_COLORS`. An unset/empty variable or `enabled = false` retains native Yazi file styles. The source integration survives Dots theme refresh without changing generated flavor files.
+`ls_colors = { enabled = true }` reads the environment Yazi inherits; it never runs `ls`, Vivid, or shell code during rendering. Without Dots integration, restart Yazi after inherited shell colors change. With Dots integration enabled, published colors refresh while Yazi is running. This reads `LS_COLORS`; it does not parse eza-specific theme files or `EZA_COLORS`. An unset/empty variable or `enabled = false` retains native Yazi file styles. The source integration survives Dots theme refresh without changing generated flavor files.
 
 The personal configuration uses the default `styles.name.source = "file"` and `styles.link.source = "target"`: the hovered icon/name retains its own file or symlink style, while the basename after the arrow uses the target’s actual style and `styles.link_dir.source = "directory"` colors its directory portion. For example, `shortcut  ~/Pictures/photo.jpg` renders `shortcut` with the symlink style and `photo.jpg` with the `.jpg` style, and `~/Pictures/` with the directory style. The directory prefix, icon, and arrow have independent style entries.
 
@@ -172,7 +172,7 @@ run = "plugin dots -- toggle-pane min-preview"
 desc = "Show or hide the preview pane"
 ```
 
-The current [keymap](../../keymap.toml) uses these routes:
+The current [keymap](tests/fixtures/config/keymap.toml) uses these routes:
 
 | Keys | Command |
 | --- | --- |
@@ -208,7 +208,7 @@ group = "git"
 
 Repository-name options live in the `githead` setup section; there is no separate `repo` section or module. Use only `{ type = "coloreds", name = "githead" }` in the section: it renders `󰊤 dots main !169 ?24` for a GitHub remote as one group, with no Dotline part separator between the repository and branch. The `repo_name` getter remains available for repository-only displays; adding it alongside `githead` would repeat the name. Both share one refresh generation, and results from an older request or directory are discarded.
 
-`show_remote_icon` defaults to true. The icon appears before `repo_prefix .. repo_symbol .. name`, separated by one space, and shares the repository name color. `repo_color` defaults to blue; `repo_owned_color` defaults to that same color when omitted. The personal config sets owned repositories to green. Both color options can also live in the existing `theme` table. Hiding the icon leaves ownership coloring enabled. Branch and status colors remain independent.
+`show_remote_icon` defaults to true. The icon appears before `repo_prefix .. repo_symbol .. name`, separated by one space, and shares the repository name color. `repo_color` defaults to blue; `repo_owned_color` defaults to that same color when omitted. The included fixture sets owned repositories to green. Both color options can also live in the existing `theme` table. Hiding the icon leaves ownership coloring enabled. Branch and status colors remain independent.
 
 Each existing asynchronous Git refresh runs one local `git-it info --json` command to obtain the icon and ownership together. Rendering runs no commands. The plugin follows git-it's remote selection (branch remote, then origin), host aliases, and configured owners. GitHub, GitLab, and Bitbucket have host icons; unknown hosts and repositories without a remote use git-it's generic Git icon. Missing git-it, failed commands, or malformed metadata omit the icon and use the normal repository color. Only the validated icon and ownership boolean are retained, and both are cleared with the Git status when navigating.
 
@@ -233,7 +233,7 @@ For JSON file storage, set `save.method = "lua"` and a writable `save.lua_save_p
 
 `main.lua` performs setup and dispatch. Each relative module has separate Yazi-managed state (for example, `dots.projects` and `dots.git`). Dotline initializes before its additional getters. Project prompts and Git commands run asynchronously; their state updates and pane ratio changes cross into the UI context using `ya.sync`.
 
-The merged upstream packages have been removed from [package.toml](../../package.toml). Unrelated installed plugins remain separate. Updates to these bundled sources are maintained in Dots rather than through the original package entries.
+The merged upstream packages have been removed from the main Dots configuration’s package.toml. Unrelated installed plugins remain separate. Shared runtime changes are maintained here and synchronized deliberately to the separately tracked Dots bundle.
 
 ## Verification
 
@@ -248,7 +248,7 @@ python3 -B test-ls-colors.py
 python3 -B test-native.py
 ```
 
-The Lua fixtures check setup order, dispatcher arguments, fetch forwarding, pane restoration, combined Git refresh/stale-result rejection, host metadata validation and failure fallbacks, independent repository/branch colors, command-free redraws, responsive hover formatting, per-part sources/overrides/visibility and style isolation, and LS_COLORS parsing, precedence, resets, and hook fallback. The GNU ls comparison runner uses disposable filesystem fixtures and reports unsupported native hard-link creation separately; its matching remains covered by Lua fixtures. The Unix PTY test uses the surrounding repository's actual config without replacing its hover settings and a temporary home/config/state/cache/runtime, isolated Git repository, and DDS socket directory. Only `dots.yazi` and a test probe are installed there. It checks real loader state, Git fetching and callbacks, installed git-it host/ownership rendering with test-owned GitHub/GitLab/Bitbucket/unknown/no-remote fixtures and host aliases, project save/load/deletion and merge event dispatch, folder rules, pane shortcuts, ANSI/indexed/RGB styles, separate symlink/target styles, reset-background preview spacing, filled cursor caps, native-style fallback, independent icon overrides, attribute removal, current-directory styling, and 40/80/160-column redraws. It requires Python, Git, git-it, and Yazi and does not install dependencies.
+The Lua fixtures check setup order, dispatcher arguments, fetch forwarding, pane restoration, combined Git refresh/stale-result rejection, host metadata validation and failure fallbacks, independent repository/branch colors, command-free redraws, responsive hover formatting, per-part sources/overrides/visibility and style isolation, and LS_COLORS parsing, precedence, resets, and hook fallback. The GNU ls comparison runner uses disposable filesystem fixtures and reports unsupported native hard-link creation separately; its matching remains covered by Lua fixtures. The Unix PTY test uses the included fixture config (or an explicit `--config-dir`) without replacing its hover settings and a temporary home/config/state/cache/runtime, isolated Git repository, and DDS socket directory. Only `dots.yazi` and a test probe are installed there. It checks real loader state, Git fetching and callbacks, installed git-it host/ownership rendering with test-owned GitHub/GitLab/Bitbucket/unknown/no-remote fixtures and host aliases, project save/load/deletion and merge event dispatch, folder rules, pane shortcuts, ANSI/indexed/RGB styles, separate symlink/target styles, reset-background preview spacing, filled cursor caps, native-style fallback, independent icon overrides, attribute removal, current-directory styling, and 40/80/160-column redraws. It requires Python, Git, git-it, and Yazi and does not install dependencies.
 
 Native results currently cover Termux with Yazi 26.9.1. Lua Windows-path fixtures are not native Windows verification. The PTY checks establish successful rendering without errors, not pixel-perfect visual equivalence.
 
@@ -256,4 +256,49 @@ Native results currently cover Termux with Yazi 26.9.1. Lua Windows-path fixture
 
 Dotline is derived from [Yatline](https://github.com/5nik7/yatline.yazi). Other bundled sources come from [yazi-rs/plugins](https://github.com/yazi-rs/plugins) (full-border, git, toggle-pane), [MasouShizuka/projects.yazi](https://github.com/MasouShizuka/projects.yazi), [imsi32/yatline-githead.yazi](https://github.com/imsi32/yatline-githead.yazi), and [jaja360/yatline-hostname-username.yazi](https://github.com/jaja360/yatline-hostname-username.yazi). Folder rules, repository naming, and responsive symlink integration come from the existing Dots configuration.
 
-Original notices are retained in [licenses/](licenses/), including the Projects JSON helper's inline notice. Dots changes use the repository's [MIT license](LICENSE).
+The Projects JSON helper retains its inline notice. The original upstream projects and their licenses are linked above; this checkout does not contain a separate licenses directory. Dots changes use the repository's [MIT license](LICENSE).
+
+
+## Follow the Dots theme
+
+```lua
+require("dots"):setup({
+  theme = {
+    source = "dots",
+    apply = function(colors, styles)
+      return {
+        dotline = {
+          style_a = {
+            fg = colors.background,
+            bg_mode = { normal = colors.blue, select = colors.magenta, un_set = colors.red },
+          },
+          style_b = { fg = colors.foreground, bg = colors.background },
+          style_c = { fg = colors.foreground, bg = colors.background },
+        },
+        hover = { styles = { path = { source = "custom", fg = colors.type.dir } } },
+      }
+    end,
+  },
+})
+```
+
+`source = "dots"` opts in; omitting it preserves inherited LS_COLORS/native behavior.
+Existing named color settings automatically resolve against the Dots palette.
+Literal hex colors remain explicit overrides. The optional callback returns UI
+component options for dotline, hover, githead and hostname_username. It receives
+foreground shortcuts (`colors.type.dir`, `colors.mime["image/*"]`) and complete
+styles (`styles.type.dir`). Put layouts and feature settings outside the callback.
+`require("dots"):colors()` and `:styles()` return the loaded snapshot in UI context.
+
+The plugin reads `$XDG_STATE_HOME/dots` (default `~/.local/state/dots`); `theme.state`
+can specify that Dots state directory explicitly. Dots sends a DDS notification
+after publishing. Yazi theme events and `plugin dots -- theme-refresh` also request
+a reload. It validates JSON and keeps previous colors on missing/malformed input;
+a fresh instance without a snapshot retains normal plugin styling. There are no
+redraw-time reads, subprocesses or directory scans. Publication updates styling
+without re-running Git/project/pane setup.
+
+File styles share Dots filesystem/suffix/MIME rules. MIME uses Yazi's cached
+`file:mime()` and falls back when unavailable. Header part overrides remain
+independent. See [architecture](docs/architecture.md), [testing](docs/testing.md),
+and [contributing](CONTRIBUTING.md). Repository workflows are in [.codex](.codex/README.md).
