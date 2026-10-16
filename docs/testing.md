@@ -10,6 +10,7 @@ lua test-ls-colors.lua
 python3 -B test-ls-colors.py
 python3 -B test-native.py
 python3 -B test-theme-native.py
+python3 -B test-package.py
 ```
 
 The Lua cases cover setup/dispatch, async state, hover styles and LS_COLORS
@@ -26,3 +27,10 @@ Termux evidence does not establish Windows behavior. No test installs dependenci
 
 Before reporting success, run Lua syntax checks and git diff --check. Verify all
 relative Markdown links. Missing tools must be reported as missing checks.
+
+The package regression needs Git, ya and Python 3.11+. It reproduces the rejected
+skill-directory symlinks, then retries `ya pkg add 5nik7/dots` with real discovery
+directories and file symlinks. Both fixture revisions are committed only inside
+a disposable repository. Git URL rewriting and `GIT_ALLOW_PROTOCOL=file` keep
+the run offline; all home/config/cache/state roots are test-owned. It verifies
+all runtime modules, source skill links, the package manifest and repeated install.

@@ -6,7 +6,7 @@ This plugin uses its bundled sources and does not load separate copies of its co
 
 ## Installation and setup
 
-Place this entire directory at `plugins/dots.yazi` inside your Yazi configuration directory. Keep the Lua modules and upstream attribution together. The main Dots checkout also tracks a bundled copy; update its runtime sources deliberately when changing this repository.
+Install with `ya pkg add 5nik7/dots`, or place this entire directory at `plugins/dots.yazi` inside your Yazi configuration directory. Keep the Lua modules and upstream attribution together. The main Dots checkout also tracks a bundled copy; update its runtime sources deliberately when changing this repository.
 
 The sources declare Yazi 26.8.15 or newer. Native verification uses **Yazi 26.9.1 on Termux**. Git features require the `git` executable. Optional `git-it` supplies remote host icons and configured repository ownership; ordinary Git labels work without it. Icons and separators use the same Nerd Font glyphs as the existing configuration.
 

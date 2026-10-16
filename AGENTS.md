@@ -21,3 +21,7 @@ that directory or convert repository boundaries as part of a feature change.
 
 Local skills are indexed in .codex/README.md. They supplement this guide rather
 than duplicating project rules.
+
+Keep `.agents/skills` discovery directories real; use file symlinks to canonical
+`.codex/skills` content. Yazi package materialization rejects directory symlinks.
+Run `python3 -B test-package.py` for packaging or discovery-layout changes.
