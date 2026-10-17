@@ -22,6 +22,7 @@ return { entry = function()
   local file = cx.active.current.hovered
   return { id=theme.snapshot and theme.snapshot.id or '', error=theme.last_error,
    blue=colors and colors.blue or '', dir=colors and colors.type.dir or '',
+   callable=require('dots').colors().background, reversed=Dotline.config.style_a.reversed,
    fg=Dotline.config.style_a.fg, normal=Dotline.config.style_a.bg_mode.normal,
    unset=Dotline.config.style_a.bg_mode.un_set,
    mode=cx.active.mode.is_select and 'V' or cx.active.mode.is_unset and 'U' or 'N',
@@ -53,9 +54,10 @@ def main():
         cfg=root/'config'; target=cfg/'plugins/dots.yazi'
         shutil.copytree(PLUGIN,target,ignore=shutil.ignore_patterns('.git','.agents','.codex','tests'))
         (cfg/'plugins/probe.yazi').mkdir();(cfg/'plugins/probe.yazi/main.lua').write_text(PROBE)
-        (cfg/'init.lua').write_text('''require('dots'):setup({theme={source='dots',apply=function(colors)
- return {dotline={style_a={fg=colors.background,bg_mode={normal=colors.blue,select=colors.magenta,un_set=colors.red}}}}
- end}})''')
+        (cfg/'init.lua').write_text("""local dots=require('dots')
+dots:setup({theme={source='dots'},dotline={style_a={fg=dots.colors.background,reversed=false,
+ bg_mode={normal=dots.colors.blue,select=dots.colors.magenta,un_set=dots.colors.red}}},
+ githead={repo_color=dots.colors.git.repo,repo_owned_color=dots.colors.git.repo_owned}})""")
         (cfg/'keymap.toml').write_text('[[mgr.prepend_keymap]]\non="~"\nrun="plugin probe"\n')
         (root/'work/directory').mkdir(); (root/'work/file.txt').write_text('fixture')
         state=root/'state/dots';(state/'themes/generations').mkdir(parents=True)
@@ -98,6 +100,7 @@ def main():
         try:
             pump(1)
             initial=snapshot();assert initial['id']=='test-dark',initial
+            assert initial['callable']=='#111111' and initial['reversed'] is False,initial
             assert initial['normal']=='#89b4fa' and initial['file']['fg']=='#89B4FA',initial
             os.write(master,b'j');pump(1)
             textfile=snapshot();assert textfile['name']=='file.txt' and textfile['mime']=='text/plain',textfile
@@ -122,6 +125,11 @@ def main():
             notify();assert snapshot()['normal']=='#123456'
             invalid=document();invalid['provenance']['mime']['text/*']['fg']=42
             publish('g.invalidsource',invalid);notify();assert snapshot()['id']=='test-light'
+            gitdoc=document();gitdoc['styles']['git']={'repo':{'fg':'#223344','bold':False,'bg':'reset'}}
+            gitdoc['colors']['git']={'repo':'#223344'};gitdoc['provenance']['git']={'repo':{'fg':'fixture'}}
+            publish('g.git',gitdoc);notify();assert snapshot()['id']=='test-dark'
+            gitdoc['styles']['git']['repo']['bold']='invalid'
+            publish('g.badgit',gitdoc);notify();assert snapshot()['error']
             publish('g.recovered',document());notify();assert snapshot()['id']=='test-dark'
             assert b'Failed to' not in output,repr(output[-1000:])
             print('PASS native dark/light publication, MIME/suffix styles, N/V/U redraws, 40/80/120 columns, last-good retention and recovery')

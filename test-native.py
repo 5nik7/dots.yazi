@@ -118,7 +118,10 @@ def run():
     source_config = (config / 'init.lua').read_text()
     def option(name, default):
         found = re.search(r'\b' + name + r'\s*=\s*"([^"]+)"', source_config)
-        return found.group(1) if found else default
+        if found:
+            return found.group(1)
+        ref = re.search(r'\b' + name + r'\s*=\s*dots\.colors\.git\.(repo_owned|repo)\b', source_config)
+        return {'repo':'magenta','repo_owned':'yellow'}[ref.group(1)] if ref else default
     repo_color, owned_color = option('repo_color', 'blue'), option('repo_owned_color', 'blue')
     with tempfile.TemporaryDirectory(prefix="dots-yazi-test-") as temporary:
         root = Path(temporary)

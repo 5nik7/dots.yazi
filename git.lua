@@ -30,18 +30,19 @@ local PATTERNS = {
 	{ "[AD][AD]", CODES.updated },
 }
 
+local shared, styles, signs
 local function theme()
 	local t = th.git or {}
 	return {
 		[CODES.unknown] = t.unknown or ui.Style(),
-		[CODES.ignored] = t.ignored or ui.Style():fg("darkgray"),
-		[CODES.untracked] = t.untracked or ui.Style():fg("magenta"),
-		[CODES.unstaged] = t.unstaged or ui.Style():fg("yellow"),
-		[CODES.staged] = t.staged or ui.Style():fg("green"),
-		[CODES.added] = t.added or ui.Style():fg("green"),
-		[CODES.deleted] = t.deleted or ui.Style():fg("red"),
-		[CODES.updated] = t.updated or ui.Style():fg("yellow"),
-		[CODES.clean] = t.clean or ui.Style(),
+		[CODES.ignored] = t.ignored or (shared and shared.ignored) or ui.Style():fg("darkgray"),
+		[CODES.untracked] = t.untracked or (shared and shared.untracked) or ui.Style():fg("magenta"),
+		[CODES.unstaged] = t.unstaged or (shared and shared.modified) or ui.Style():fg("yellow"),
+		[CODES.staged] = t.staged or (shared and shared.staged) or ui.Style():fg("green"),
+		[CODES.added] = t.added or (shared and shared.added) or ui.Style():fg("green"),
+		[CODES.deleted] = t.deleted or (shared and shared.deleted) or ui.Style():fg("red"),
+		[CODES.updated] = t.updated or (shared and shared.conflict) or ui.Style():fg("yellow"),
+		[CODES.clean] = t.clean or (shared and shared.clean) or ui.Style(),
 	}, {
 		[CODES.unknown] = t.unknown_sign or "",
 		[CODES.ignored] = t.ignored_sign or " ",
@@ -53,6 +54,18 @@ local function theme()
 		[CODES.updated] = t.updated_sign or " ",
 		[CODES.clean] = t.clean_sign or "",
 	}
+end
+
+-- Convert complete styles outside redraw. Explicit th.git entries take precedence.
+local function recolor(_, doc)
+  local next_shared = {}
+  for role,style in pairs(doc and doc.styles.git or {}) do
+    local data = {}
+    for key,value in pairs(style) do data[key=='reversed' and 'reverse' or key]=value end
+    next_shared[role] = require('.ls-colors').to_style({data=data})
+  end
+  shared = next_shared
+  styles, signs = theme()
 end
 
 ---@param line string
@@ -197,7 +210,7 @@ local function setup(st, opts)
 	opts = opts or {}
 	opts.order = opts.order or 1500
 
-	local styles, signs = theme()
+	styles, signs = theme()
 	ps.sub("theme", function()
 		styles, signs = theme()
 	end)
@@ -276,4 +289,4 @@ local function fetch(_, job)
 	return retry(job)
 end
 
-return { setup = setup, fetch = fetch }
+return { setup = setup, fetch = fetch, recolor = recolor }

@@ -241,6 +241,8 @@ From this directory:
 
 ```sh
 lua test.lua
+lua test-color-refs.lua
+lua test-git-colors.lua
 lua test-githead.lua
 lua test-hover.lua
 lua test-ls-colors.lua
@@ -262,39 +264,51 @@ The Projects JSON helper retains its inline notice. The original upstream projec
 ## Follow the Dots theme
 
 ```lua
-require("dots"):setup({
-  theme = {
-    source = "dots",
-    apply = function(colors, styles)
-      return {
-        dotline = {
-          style_a = {
-            fg = colors.background,
-            bg_mode = { normal = colors.blue, select = colors.magenta, un_set = colors.red },
-          },
-          style_b = { fg = colors.foreground, bg = colors.background },
-          style_c = { fg = colors.foreground, bg = colors.background },
-        },
-        hover = { styles = { path = { source = "custom", fg = colors.type.dir } } },
-      }
-    end,
+local dots = require("dots")
+dots:setup({
+  theme = { source = "dots" },
+  dotline = {
+    style_a = {
+      fg = dots.colors.background,
+      reversed = false,
+      bg_mode = {
+        normal = dots.colors.blue,
+        select = dots.colors.magenta,
+        un_set = dots.colors.red,
+      },
+    },
+    style_b = { fg = dots.colors.foreground, bg = dots.colors.background },
+    style_c = { fg = dots.colors.foreground, bg = dots.colors.background },
+  },
+  githead = {
+    repo_color = dots.colors.git.repo,
+    repo_owned_color = dots.colors.git.repo_owned,
   },
 })
 ```
 
 `source = "dots"` opts in; omitting it preserves inherited LS_COLORS/native behavior.
 Existing named color settings automatically resolve against the Dots palette.
-Literal hex colors remain explicit overrides. The optional callback returns UI
+Literal hex colors remain explicit overrides. References also support `dots.colors.type.dir`, `dots.colors.mime["image/*"]` and
+`dots.colors.extension[".lua"]`. They are opaque values for color options, resolved
+at setup and every refresh, not strings for concatenation. Standard palette/Git
+roles have terminal-color fallbacks; an unavailable custom reference reports an
+error (refresh retains the last good snapshot). Older snapshots without
+`git.repo_owned` fall back to yellow. No extra template is required: the plugin
+reads the existing Dots publication.
+
+The optional `theme.apply = function(colors, styles) ... end` callback returns UI
 component options for dotline, hover, githead and hostname_username. It receives
 foreground shortcuts (`colors.type.dir`, `colors.mime["image/*"]`) and complete
 styles (`styles.type.dir`). Put layouts and feature settings outside the callback.
-`require("dots"):colors()` and `:styles()` return the loaded snapshot in UI context.
+`dots.colors()`, `dots:colors()` and `dots:styles()` return the loaded snapshot in UI context.
 
 The plugin reads `$XDG_STATE_HOME/dots` (default `~/.local/state/dots`); `theme.state`
 can specify that Dots state directory explicitly. Dots sends a DDS notification
 after publishing. Yazi theme events and `plugin dots -- theme-refresh` also request
 a reload. It validates JSON and keeps previous colors on missing/malformed input;
-a fresh instance without a snapshot retains normal plugin styling. There are no
+a fresh instance without a snapshot uses terminal-color fallbacks for standard
+references and retains explicit options. There are no
 redraw-time reads, subprocesses or directory scans. Publication updates styling
 without re-running Git/project/pane setup.
 
@@ -302,3 +316,7 @@ File styles share Dots filesystem/suffix/MIME rules. MIME uses Yazi's cached
 `file:mime()` and falls back when unavailable. Header part overrides remain
 independent. See [architecture](docs/architecture.md), [testing](docs/testing.md),
 and [contributing](CONTRIBUTING.md). Repository workflows are in [.codex](.codex/README.md).
+
+With Dots enabled, omitted Githead colors follow shared roles for repository, owned repository, branch, ahead/behind, staged/modified/untracked and conflict state. Ownership still comes from the existing git-it integration and its configuration. Per-file Git indicators use complete Dots Git styles, including backgrounds, resets and explicit false attributes; `th.git` overrides win. Signs and hovered-row styling are preserved, and file names keep their file-type/MIME styling.
+
+For remote installations, publish source changes first and update with `ya pkg upgrade 5nik7/dots`. Do not patch installed package files or edit their manifest hash. Restart Yazi once to load new plugin code; subsequent Dots palette publications update the running UI.

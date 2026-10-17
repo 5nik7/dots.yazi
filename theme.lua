@@ -1,15 +1,16 @@
 ---@diagnostic disable: undefined-global
 -- Published JSON is data. Theme refresh never starts a shell or re-runs setup.
 local M = { snapshot = nil }
+local refs = require('.color-refs')
 local options, base, registered, apply_overlay
 local function clone(value)
-  if type(value) ~= 'table' then return value end
+  if type(value) ~= 'table' or refs.is(value) then return value end
   local result = {}; for k,v in pairs(value) do result[k] = clone(v) end; return result
 end
 local function merge(a,b)
-  local result = clone(a or {})
+  local result = type(a)=='table' and not refs.is(a) and clone(a) or {}
   for k,v in pairs(b or {}) do
-    result[k] = type(v) == 'table' and merge(result[k],v) or v
+    result[k] = type(v) == 'table' and not refs.is(v) and merge(result[k],v) or v
   end
   return result
 end
@@ -27,7 +28,9 @@ function M.validate(doc)
   end
   assert(type(doc.ls_colors) == 'string' and doc.ls_colors ~= '' and not doc.ls_colors:find('[\n\r\27]'), 'invalid LS_COLORS')
   assert(type(doc.styles)=='table' and type(doc.provenance)=='table', 'missing styles or provenance')
-  for _,group in ipairs({'type','mime','extension'}) do
+  local groups = {'type','mime','extension'}
+  if doc.styles.git or doc.colors.git or doc.provenance.git then groups[#groups+1]='git' end
+  for _,group in ipairs(groups) do
     assert(type(doc.styles[group]) == 'table' and type(doc.colors[group]) == 'table', 'missing style group')
     assert(type(doc.provenance[group])=='table', 'missing style provenance group')
     for key,style in pairs(doc.styles[group]) do
@@ -58,6 +61,7 @@ local function state_root()
   return root .. '/dots'
 end
 local function map_colors(value, colors, parent)
+  if refs.is(value) then return refs.resolve(value, colors) end
   if type(value) ~= 'table' then return value end
   local result = {}
   for k,v in pairs(value) do
@@ -69,12 +73,26 @@ local function map_colors(value, colors, parent)
   end
   return result
 end
-local function overlay(doc)
+local head_roles = {
+  repo_color='repo', repo_owned_color='repo_owned', branch_color='branch', remote_branch_color='branch',
+  behind_remote_color='behind', ahead_remote_color='ahead', state_color='conflict',
+  staged_color='staged', unstaged_color='modified', untracked_color='untracked',
+}
+local function overlay(doc, fallback)
   local result = {}
   for _,component in ipairs({'dotline','hover','githead','hostname_username'}) do
     result[component] = map_colors(base[component] or {}, doc.colors)
   end
-  if options.apply then result = merge(result, options.apply(clone(doc.colors),clone(doc.styles)) or {}) end
+  if options.source == 'dots' then
+    local head = result.githead.theme or result.githead
+    local namespace = refs.namespace()
+    for key,role in pairs(head_roles) do
+      if head[key] == nil then head[key] = refs.resolve(namespace.git[role], doc.colors) end
+    end
+  end
+  if options.apply and not fallback then
+    result = merge(result, options.apply(clone(doc.colors),clone(doc.styles)) or {})
+  end
   for key in pairs(result) do
     assert(key=='dotline' or key=='hover' or key=='githead' or key=='hostname_username', 'theme callback only styles UI components')
   end
@@ -97,9 +115,9 @@ function M:refresh()
   if not ok then self.last_error = tostring(doc); return false end
   if not doc then return false end
   if apply_overlay then
-    local applied, err = pcall(apply_overlay, updated)
+    local applied, err = pcall(apply_overlay, updated, doc)
     if not applied then
-      if self.current then pcall(apply_overlay, self.current) end
+      if self.current then pcall(apply_overlay, self.current, self.snapshot) end
       self.last_error = tostring(err); return false
     end
   end
@@ -110,10 +128,12 @@ function M:refresh()
 end
 function M:setup(config, initial)
   options, base = config or {}, clone(initial or {})
-  self.current, apply_overlay = clone(base), nil
+  self.current, apply_overlay = nil, nil
+  self.snapshot = nil
   if options.source ~= 'dots' then self.snapshot = nil; require('.ls-colors'):snapshot(nil) end
   self.generation = nil
   self:refresh()
+  if not self.current then self.current = overlay({colors={},styles={}}, true) end
   if options.source == 'dots' and not registered then
     local function refresh() self:refresh() end
     ps.sub_remote('dots-theme-changed', function(root) if root == state_root() then refresh() end end)

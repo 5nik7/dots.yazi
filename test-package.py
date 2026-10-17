@@ -80,7 +80,23 @@ def main():
         manifest = tomllib.loads((root / 'config/yazi/package.toml').read_text())
         assert manifest['plugin']['deps'][0]['use'] == '5nik7/dots'
         run('ya', 'pkg', 'install')
-        print('PASS native add recovery, complete runtime materialization, valid skill links and repeated install', flush=True)
+        original = (installed / 'main.lua').read_bytes()
+        (source / 'main.lua').write_bytes(original + b'\n-- fixture upgrade\n')
+        run('git', 'add', 'main.lua')
+        run('git', 'commit', '-m', 'Fixture upgrade')
+        (installed / 'main.lua').chmod(0o644)
+        (installed / 'main.lua').write_bytes(original + b'\n-- local edit\n')
+        refused = run('ya', 'pkg', 'upgrade', '5nik7/dots', expected=None)
+        assert refused.returncode != 0, refused
+        assert (installed / 'main.lua').read_bytes().endswith(b'-- local edit\n')
+        # Restore only our deliberate fixture edit; never discard live changes.
+        (installed / 'main.lua').write_bytes(original)
+        run('ya', 'pkg', 'upgrade', '5nik7/dots')
+        assert (installed / 'main.lua').read_bytes() == (source / 'main.lua').read_bytes()
+        upgraded = tomllib.loads((root / 'config/yazi/package.toml').read_text())
+        assert upgraded['plugin']['deps'][0]['rev'] != manifest['plugin']['deps'][0]['rev']
+        run('ya', 'pkg', 'install')
+        print('PASS native add recovery, complete runtime materialization, valid skill links, dirty-upgrade refusal, clean upgrade and repeated install', flush=True)
 
 
 if __name__ == '__main__':

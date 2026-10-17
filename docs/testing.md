@@ -4,6 +4,8 @@ Run from this repository, sequentially:
 
 ```sh
 lua test.lua
+lua test-color-refs.lua
+lua test-git-colors.lua
 lua test-githead.lua
 lua test-hover.lua
 lua test-ls-colors.lua
@@ -33,4 +35,6 @@ skill-directory symlinks, then retries `ya pkg add 5nik7/dots` with real discove
 directories and file symlinks. Both fixture revisions are committed only inside
 a disposable repository. Git URL rewriting and `GIT_ALLOW_PROTOCOL=file` keep
 the run offline; all home/config/cache/state roots are test-owned. It verifies
-all runtime modules, source skill links, the package manifest and repeated install.
+all runtime modules, source skill links, the package manifest, refusal of dirty upgrades, clean upgrades and repeated install.
+
+Color-reference fixtures cover fallback, live resolution, explicit false, callback merging and last-good validation. Git style fixtures exercise the installed indicator closure, complete attributes/reset, explicit overrides and hovered-row behavior. Native theme tests use the public reference syntax and both callable getters across refreshes, including malformed optional Git groups.

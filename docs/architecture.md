@@ -18,7 +18,6 @@ idempotent hooks are retained. Structural layouts remain owned by normal setup.
 The LS_COLORS resolver preserves core precedence, suffix collision behavior,
 backgrounds and attributes; Dots adds explicit MIME overrides using cached metadata.
 
-This repository owns shared runtime source. Dots tracks a bundled copy under its
-Yazi config; synchronize selected shared files after reviewing both worktrees.
-Keep tests/docs local and do not copy .git, caches or generated Dots state. Dots'
-`tools/check_yazi_bundle.py --source /path/to/dots.yazi` checks runtime consistency.
+`color-refs.lua` owns opaque reference tokens and fallback colors. Theme cloning preserves tokens, then resolves them against the validated snapshot before UI application. The callable namespace preserves the snapshot getter API. `git.lua` converts complete Git styles to cached Yazi styles during setup/refresh; its redraw closure performs no I/O. Explicit `th.git` entries take precedence.
+
+This repository owns shared runtime source. For a remote-installed Dots bundle, publish reviewed changes here and update through `ya pkg upgrade 5nik7/dots`. Never manually patch installed files or rewrite package hashes. Keep source-only skills and Git state out of installed runtime. Dots' `tools/check_yazi_bundle.py --source /path/to/dots.yazi` checks runtime consistency after package update.

@@ -16,6 +16,9 @@ require = function(name)
   end
   return modules[name]
 end
+modules['.color-refs'] = dofile('color-refs.lua')
+modules['.git'] = {setup=function(_, opts) setup_order[#setup_order+1]='.git' end, recolor=function() end,
+ fetch=function(self, job) calls[#calls+1]={module=self,job=job}; return true end}
 modules['.theme'] = {
   setup = function(_, options, initial) return initial end,
   bind = function(_, callback) assert(type(callback)=='function') end,

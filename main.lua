@@ -3,6 +3,7 @@
 
 -- Register the pane sync block in the UI context before asynchronous dispatch.
 local toggle_pane = require(".toggle-pane")
+local palette_theme = require(".theme")
 local refresh_theme = ya.sync(function() require(".theme"):refresh() end)
 
 local function setup(_, options)
@@ -12,6 +13,7 @@ local function setup(_, options)
   require(".ls-colors"):setup(options.ls_colors or {})
   require(".full-border"):setup(options.full_border or {})
   require(".git"):setup(options.git or {})
+  require(".git"):recolor(theme.snapshot)
   require(".folder-rules"):setup(options.folder_rules or {})
   require(".projects"):setup(options.projects or {})
   require(".dotline"):setup(options.dotline or {})
@@ -19,7 +21,8 @@ local function setup(_, options)
   require(".githead"):setup(options.githead or {})
   require(".hostname-username"):setup(options.hostname_username or {})
   -- Style updates use existing component state, never the full plugin setup.
-  theme:bind(function(value)
+  theme:bind(function(value, doc)
+    require(".git"):recolor(doc)
     if value.dotline then
       for key,item in pairs(value.dotline) do
         if key ~= 'header_line' and key ~= 'status_line' then Dotline.config[key] = item end
@@ -59,7 +62,9 @@ end
 
 return {
   setup = setup,
-  colors = function() local doc = require(".theme").snapshot; return doc and doc.colors end,
+  colors = require(".color-refs").namespace(function()
+    local doc = palette_theme.snapshot; return doc and doc.colors
+  end),
   styles = function() local doc = require(".theme").snapshot; return doc and doc.styles end,
   entry = entry,
   fetch = function(_, job) return require(".git"):fetch(job) end,

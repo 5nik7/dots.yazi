@@ -9,6 +9,7 @@ README examples and the appropriate component; shared theme data belongs to the
 Dots publisher, not a second palette parser embedded in individual components.
 
 If a change also updates the main Dots checkout, inspect both Git states first.
-Copy only reviewed shared runtime files, preserving the bundled copy's read-only
-permissions. Run the consistency checker in Dots and validate its real source
-config through the isolated native runner. Commit histories remain independent.
+Validate its candidate configuration through the isolated native runner. For
+remote-installed packages, publish the standalone source and use `ya pkg upgrade
+5nik7/dots`; never patch installed files, discard local changes or rewrite hashes.
+Run Dots' consistency checker after the update. Commit histories remain independent.
