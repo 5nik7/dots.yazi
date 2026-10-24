@@ -49,3 +49,8 @@ desc = "Merge current tab to other projects"
 on = ["P", "M"]
 run = "plugin dots -- projects merge all"
 desc = "Merge current project to other projects"
+
+[[mgr.prepend_keymap]]
+on = "<A-m>"
+run = "plugin dots -- preview toggle"
+desc = "Toggle Markdown preview/source"

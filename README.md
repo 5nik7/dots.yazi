@@ -8,7 +8,7 @@ This plugin uses its bundled sources and does not load separate copies of its co
 
 Install with `ya pkg add 5nik7/dots`, or place this entire directory at `plugins/dots.yazi` inside your Yazi configuration directory. Keep the Lua modules and upstream attribution together. The main Dots checkout also tracks a bundled copy; update its runtime sources deliberately when changing this repository.
 
-The sources declare Yazi 26.8.15 or newer. Native verification uses **Yazi 26.9.1 on Termux**. Git features require the `git` executable. Optional `git-it` supplies remote host icons and configured repository ownership; ordinary Git labels work without it. Icons and separators use the same Nerd Font glyphs as the existing configuration.
+The plugin requires Yazi 26.9.1 or newer. Native verification uses **Yazi 26.9.1 on Termux**. Git features require the `git` executable. Optional `git-it` supplies remote host icons and configured repository ownership; ordinary Git labels work without it. Icons and separators use the same Nerd Font glyphs as the existing configuration.
 
 Call setup once from `init.lua`:
 
@@ -70,10 +70,15 @@ require("dots"):setup({
 
 A self-contained configuration, including colors, separators, Git indicators, and project events, lives in [example configuration](tests/fixtures/config/init.lua). Its appearance settings are passed into the plugin, not hardcoded as personal defaults. An omitted section uses that component's defaults. All bundled features initialize; `false` is not a component-disable switch.
 
+## Image and Markdown previews
+
+The optional `dots.preview` component adds platform-specific image rendering and Markdown renderer/source toggling. Configure `preview.image` and `preview.markdown` inside the existing setup table. The personal example uses Chafa `vhalf` on Termux, mdcat for Markdown, and Alt+m to toggle Bat source view independently in each tab. Glow, Rich CLI, plain text and Yazi's built-in source view are also supported. See [preview configuration, registration and limits](https://github.com/5nik7/dots.yazi/blob/main/docs/preview.md); preview support requires Yazi 26.9.1. Existing users without preview rules retain their previous behavior.
+
 ## Components and configuration
 
 | Setup section | Bundled module | Behavior and options |
 | --- | --- | --- |
+| `preview` | [preview.lua](preview.lua) | Optional image/Markdown preview dispatch, platform overrides and per-tab source toggling. See [preview options](https://github.com/5nik7/dots.yazi/blob/main/docs/preview.md). |
 | `ls_colors` | [ls-colors.lua](ls-colors.lua) | Reads inherited `LS_COLORS` once at setup; `enabled` defaults to true. Shares full file styles between all file panes and the hovered header name. |
 | `full_border` | [full-border.lua](full-border.lua) | Wraps the file panes in borders; `type` selects the border style. |
 | `git` | [git.lua](git.lua) | Adds per-file Git indicators; `order` controls their placement. Fetcher rules below are also required. Theme overrides remain in `th.git`. |

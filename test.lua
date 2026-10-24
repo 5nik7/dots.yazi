@@ -28,10 +28,10 @@ ya = { sync = function(fn) return fn end, notify = function(notice) notices[#not
 local dots = dofile("main.lua")
 local options = { dotline = { padding = { inner = 2 } }, projects = { notify = { title = "Projects" } } }
 dots:setup(options)
-assert(table.concat(setup_order, ",") == ".ls-colors,.full-border,.git,.folder-rules,.projects,.dotline,.hover,.githead,.hostname-username")
+assert(table.concat(setup_order, ",") == ".preview,.ls-colors,.full-border,.git,.folder-rules,.projects,.dotline,.hover,.githead,.hostname-username")
 assert(modules[".dotline"].options == options.dotline)
 assert(modules[".projects"].options == options.projects)
-for _, route in ipairs({ "projects", "githead", "toggle-pane" }) do
+for _, route in ipairs({ "projects", "githead", "toggle-pane", "preview" }) do
   local job = { args = { route, "load", "a project with spaces", force = true }, marker = "keep" }
   dots:entry(job)
   local call = calls[#calls]

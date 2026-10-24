@@ -271,7 +271,10 @@ def run():
                 check_styles(snapshot())
             assert "preview-plain" in cap_checks and "current-filled" in cap_checks, cap_checks
             print("PASS native separate symlink/target styles, preview spacing and filled cursor caps", flush=True)
-            for action, ratio in ((b"\x18", [2, 4, 0]), (b"\x18", [2, 4, 5]), (b"X", [2, 4, 9999]), (b"X", [2, 4, 5])):
+            original_ratio = snapshot()["ratio"]
+            hidden_ratio = original_ratio[:2] + [0]
+            maximum_ratio = original_ratio[:2] + [9999]
+            for action, ratio in ((b"\x18", hidden_ratio), (b"\x18", original_ratio), (b"X", maximum_ratio), (b"X", original_ratio)):
                 key(action)
                 assert snapshot()["ratio"] == ratio
             print("PASS native startup, module state, Git callbacks/fetcher, pane shortcuts", flush=True)

@@ -29,6 +29,15 @@ image_quality = 75
 ueberzug_scale = 1
 ueberzug_offset = [0, 0, 0, 0]
 
+[plugin]
+prepend_previewers = [
+  { url = "*.{[mM][dD],[mM][aA][rR][kK][dD][oO][wW][nN],[mM][dD][oO][wW][nN]}", run = "dots preview markdown" },
+  { mime = "text/{markdown,x-markdown}", run = "dots preview markdown" },
+  { mime = "image/{avif,hei?,jxl}", run = "dots preview image magick" },
+  { mime = "image/svg+xml", run = "dots preview image svg" },
+  { mime = "image/*", run = "dots preview image image" },
+]
+
 [[plugin.prepend_fetchers]]
 id = "git"    # Remove if Yazi > v26.1.22
 url = "*"

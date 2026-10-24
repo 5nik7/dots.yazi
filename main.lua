@@ -1,13 +1,15 @@
---- @since 26.8.15
+--- @since 26.9.1
 --- @diagnostic disable: undefined-global
 
 -- Register the pane sync block in the UI context before asynchronous dispatch.
 local toggle_pane = require(".toggle-pane")
 local palette_theme = require(".theme")
+local preview = require(".preview")
 local refresh_theme = ya.sync(function() require(".theme"):refresh() end)
 
 local function setup(_, options)
   options = options or {}
+  preview:setup(options.preview)
   local theme = require(".theme")
   options = theme:setup(options.theme, options)
   require(".ls-colors"):setup(options.ls_colors or {})
@@ -38,9 +40,9 @@ local function entry(_, job)
   local args = job.args or {}
   local action = args[1]
   if action == "theme-refresh" then refresh_theme(); return end
-  local routes = { projects = "projects", githead = "githead", ["toggle-pane"] = "toggle-pane" }
+  local routes = { projects = "projects", githead = "githead", ["toggle-pane"] = "toggle-pane", preview = "preview" }
   if not routes[action] then
-    return ya.notify({ title = "dots", content = "Unknown action. Use projects or toggle-pane.", level = "warn", timeout = 3 })
+    return ya.notify({ title = "dots", content = "Unknown action. Use projects, toggle-pane or preview.", level = "warn", timeout = 3 })
   end
 
   -- Retain named arguments and all other job fields; consume only our route.
@@ -67,5 +69,7 @@ return {
   end),
   styles = function() local doc = require(".theme").snapshot; return doc and doc.styles end,
   entry = entry,
+  peek = function(_, job) return preview:peek(job) end,
+  seek = function(_, job) return preview:seek(job) end,
   fetch = function(_, job) return require(".git"):fetch(job) end,
 }
