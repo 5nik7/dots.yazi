@@ -5,6 +5,8 @@ function M.arguments(renderer, opts, width, height, path)
   local args={};append(args,(opts.args or {})[renderer])
   if renderer=="chafa" then
     append(args,{"--format","symbols","--symbols",opts.symbols,"--relative","off","--probe","off","--polite","on","--passthrough","none","--animate","off","--view-size",string.format("%dx%d",width,height)})
+  elseif renderer=="leaf" then
+    append(args,{"--inline","ansi:"..width})
   elseif renderer=="mdcat" then
     append(args,{"--ansi","--local","--no-pager","--image-protocol","none","--columns",tostring(width)})
   elseif renderer=="glow" then

@@ -3,7 +3,7 @@ require("dots"):setup({
     image = { renderer = "default", symbols = "vhalf", args = { chafa = {} },
       platforms = { termux = { renderer = "chafa" } } },
     markdown = { renderer = "mdcat", source = "bat",
-      args = { mdcat = {}, glow = {}, rich = {}, bat = {}, cat = {} }, platforms = {} },
+      args = { leaf = {}, mdcat = {}, glow = {}, rich = {}, bat = {}, cat = {} }, platforms = {} },
   },
   theme = {
     source = "dots",

@@ -13,6 +13,7 @@ lua test-ls-colors.lua
 python3 -B test-ls-colors.py
 python3 -B test-native.py
 python3 -B test-preview-native.py
+python3 -B test-preview-native.py --backend leaf
 python3 -B test-theme-native.py
 python3 -B test-package.py
 ```
@@ -41,4 +42,4 @@ all runtime modules, source skill links, the package manifest, refusal of dirty 
 
 Color-reference fixtures cover fallback, live resolution, explicit false, callback merging and last-good validation. Git style fixtures exercise the installed indicator closure, complete attributes/reset, explicit overrides and hovered-row behavior. Native theme tests use the public reference syntax and both callable getters across refreshes, including malformed optional Git groups.
 
-Preview tests cover platform selection, override/list semantics, literal argv, per-tab state and stale results, output/deadline limits, source fallback, and argument-free seek jobs. The native preview runner owns all config/cache/DDS/TMPDIR roots and accepts `--config-dir` for a copied personal configuration. It requires Yazi, mdcat, Bat and Chafa; Glow/Rich are command fixtures when unavailable. Native tests exercise Alt+m, tab reordering, scrolling, resizing, SVG/PNG and renderer failures. The SVG preloader may report missing optional resvg; direct Chafa SVG rendering is tested independently. Native Windows/WSL/macOS and real Glow/Rich remain separate acceptance checks.
+Preview tests cover platform selection, override/list semantics, literal argv, per-tab state and stale results, output/deadline limits, source fallback, and argument-free seek jobs. The native preview runner owns all config/cache/DDS/TMPDIR roots and accepts `--config-dir` for a copied personal configuration. It requires Yazi, Bat, Chafa and the selected renderer (mdcat by default, or Leaf with `--backend leaf`); Glow/Rich are command fixtures when unavailable. With `--config-dir`, `--backend` specifies the expected renderer without changing the copied configuration; use `--backend leaf --config-dir /path/to/dots/config/yazi` for a personal Leaf configuration. Leaf checks use the real installed binary, including ANSI output and filenames with spaces/Unicode. Native tests exercise Alt+m, tab reordering, scrolling, resizing, SVG/PNG and renderer failures. The SVG preloader may report missing optional resvg; direct Chafa SVG rendering is tested independently. Native Windows/WSL/macOS and real Glow/Rich remain separate acceptance checks.

@@ -2,15 +2,16 @@
 -- Pure configuration: no filesystem access, commands, or UI state.
 local M = {}
 local platforms = { termux=true, wsl=true, linux=true, macos=true, windows=true }
-local renderers = { image={default=true,chafa=true}, markdown={default=true,mdcat=true,glow=true,rich=true,bat=true} }
+local renderers = { image={default=true,chafa=true}, markdown={default=true,leaf=true,mdcat=true,glow=true,rich=true,bat=true} }
 local sources = { default=true, bat=true, cat=true }
 local defaults = {
   image = { renderer="default", symbols="vhalf", args={chafa={}} },
-  markdown = { renderer="default", source="bat", args={mdcat={},glow={},rich={},bat={},cat={}} },
+  markdown = { renderer="default", source="bat", args={leaf={},mdcat={},glow={},rich={},bat={},cat={}} },
 }
 -- Extra arguments customize appearance; adapters retain ownership of transport,
 -- filenames, width, pagination, and the explicitly named configuration options.
 local reserved = {
+  leaf={"--inline","--width","--watch","-w","--editor","-e","--fuzzy","--picker","--history","-H","--last","-l","--config","--update","--auto-complete"},
   chafa={"--format","-f","--symbols","--relative","--probe","--polite","--passthrough","--animate","--view-size","--size","-s","--watch","--files","--files0","--glyph-file","--clear","--duration","-d","--grid","-g","--label","-l","--link"},
   mdcat={"--columns","--full-width","--ansi","--local","-l","--no-pager","-P","--paginate","-p","--watch","-w","--image-protocol","--detect-terminal","--completions","--list-themes"},
   glow={"--width","-w","--pager","-p","--tui","-t"},

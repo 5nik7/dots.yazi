@@ -25,6 +25,8 @@ return { entry = function()
    skip = cx.active.preview.skip, tabs = #cx.tabs }
  local ok, preview = pcall(require, "dots.preview")
  if ok then
+   result.renderer = preview.options.markdown.renderer
+   result.symbols = preview.options.image.symbols
    result.modes = {}
    for _, t in ipairs(preview.tabs or {}) do
      result.modes[#result.modes+1] = {token=t.token, source=t.source, active=t.id==cx.active.id.value}
@@ -74,14 +76,14 @@ prepend_previewers=[
             f.write('\n[[mgr.prepend_keymap]]\non="~"\nrun="plugin probe"\n')
             f.write('\n[[mgr.prepend_keymap]]\non="!"\nrun="plugin dots -- preview toggle"\n')
         self.log=root/'calls.jsonl'
-        for tool in ('mdcat','bat','chafa','glow','rich'):
+        for tool in ('leaf','mdcat','bat','chafa','glow','rich'):
             real=shutil.which(tool)
             script=root/'bin'/tool
             script.write_text('#!'+sys.executable+'\n'+f'''import json,os,sys,time
 from pathlib import Path
 with open({str(self.log)!r},'a') as f:f.write(json.dumps([{tool!r},sys.argv[1:],os.getpid()])+"\\n")
 mode=Path({str(root/'behavior')!r}).read_text() if Path({str(root/'behavior')!r}).exists() else ''
-if {tool!r} in ('mdcat','glow','rich'):
+if {tool!r} in ('leaf','mdcat','glow','rich'):
  if mode=='fail':sys.exit(2)
  if mode=='hang':time.sleep(30)
  if mode=='closed':os.close(1);os.close(2);time.sleep(30)
@@ -145,36 +147,45 @@ os.execv({real!r},[{tool!r}]+sys.argv[1:])
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--config-dir',type=Path);parser.add_argument('--probe',action='store_true')
+    parser.add_argument('--backend', choices=('mdcat','leaf'), default='mdcat',
+                        help='Renderer for generated config, or expected renderer with --config-dir')
     args=parser.parse_args()
-    for tool in ('yazi','mdcat','bat','chafa'):
+    for tool in ('yazi',args.backend,'bat','chafa'):
         if not shutil.which(tool):raise SystemExit('Required native tool unavailable: '+tool)
     with tempfile.TemporaryDirectory(prefix='dots-preview-test-') as temp:
-        s=Session(Path(temp)/'initial',args.config_dir)
+        s=Session(Path(temp)/'initial',args.config_dir,backend=args.backend)
         try:
             if args.probe:
                 print(s.snapshot());print(s.errors());return
-            assert any(c[0]=='mdcat' for c in s.calls()),s.errors()
+            state=s.snapshot()
+            assert state['renderer']==args.backend,state
+            assert any(c[0]==args.backend for c in s.calls()),s.errors()
+            if args.backend=='leaf':
+                argv=next(c[1] for c in s.calls() if c[0]=='leaf')
+                assert argv[0]=='--inline' and argv[1].startswith('ansi:') and argv[2]=='--',argv
+                assert argv[-1].endswith('a - 路径.Md'),argv
             assert b'PREVIEW_HEADING' in s.output,s.errors()
             assert s.snapshot()['same'], 'Yazi numeric tab IDs are unstable'
             s.key(b'\x1bm');assert s.calls()[-1][0]=='bat',s.errors()
             state=s.snapshot();assert any(t['source'] and t['active'] for t in state['modes']),state
             s.key(b'j');assert s.calls()[-1][0]=='bat',s.errors()
-            s.key(b'tt');assert s.calls()[-1][0]=='mdcat',s.errors()
+            s.key(b'tt');assert s.calls()[-1][0]==args.backend,s.errors()
             state=s.snapshot();assert state['tabs']==2 and any(not t['source'] and t['active'] for t in state['modes']),state
             s.key(b'^');state=s.snapshot();assert any(not t['source'] and t['active'] for t in state['modes']),state
             s.key(b']');assert s.calls()[-1][0]=='bat',s.errors()
-            s.key(b'\x1bm');assert s.calls()[-1][0]=='mdcat',s.errors()
+            s.key(b'\x1bm');assert s.calls()[-1][0]==args.backend,s.errors()
             s.key(b'k');s.key(b'J');assert s.snapshot()['skip']>0,s.errors()
             s.key(b'\x1bm');assert s.snapshot()['skip']==0,s.errors()
             s.key(b'\x03');state=s.snapshot();assert state['tabs']==1 and len(state['modes'])==1,state
             assert not state['modes'][0]['source'],state
             s.key(b'\x1bm')
-            print('PASS native mdcat/Bat, Alt+m, tab reordering/closure and scrolling',flush=True)
+            print('PASS native',args.backend+'/Bat, Alt+m, tab reordering/closure and scrolling',flush=True)
             s.key(b'3');before=s.snapshot()['modes'];s.key(b'\x1bm');assert s.snapshot()['modes']==before
             for key in (b'4',b'5'):
                 s.key(key,.8);assert s.calls()[-1][0]=='chafa',s.errors()
-                assert '--symbols' in s.calls()[-1][1] and 'vhalf' in s.calls()[-1][1]
-                assert '▄'.encode() in s.output or '▀'.encode() in s.output
+                assert '--symbols' in s.calls()[-1][1] and state['symbols'] in s.calls()[-1][1]
+                if state['symbols']=='vhalf':
+                    assert '▄'.encode() in s.output or '▀'.encode() in s.output
             s.key(b'6',.8);before=len(s.calls());s.pump(.5);assert len(s.calls())==before
             s.key(b'1');s.key(b'\x1bm') # back to rendered mode
             for behavior in ('fail','hang','closed','flood'):
@@ -192,12 +203,12 @@ def main():
             assert 'Error when running previewer'  not in s.errors() and 'runtime error' not in s.errors(),s.errors()
         finally:s.close()
         for width in (40,120):
-            s=Session(Path(temp)/('width-'+str(width)),args.config_dir,width=width)
+            s=Session(Path(temp)/('width-'+str(width)),args.config_dir,width=width,backend=args.backend)
             try:
                 assert b'PREVIEW_HEADING' in s.output,s.errors()
                 s.key(b'5',.8);assert s.calls()[-1][0]=='chafa',s.errors()
                 fcntl.ioctl(s.master,termios.TIOCSWINSZ,struct.pack('HHHH',30,80,0,0));os.kill(s.child.pid,signal.SIGWINCH)
-                s.key(b'1',.8);assert s.calls()[-1][0]=='mdcat',s.errors()
+                s.key(b'1',.8);assert s.calls()[-1][0]==args.backend,s.errors()
                 print('PASS native width',width,'and resize',flush=True)
             finally:s.close()
         if not args.config_dir:
@@ -206,7 +217,7 @@ def main():
                 try:
                     if backend in ('glow','rich'):assert b'FIXTURE_RENDER' in s.output,s.errors()
                     elif backend=='bat':assert any(c[0]=='bat' for c in s.calls()),s.errors()
-                    else:assert not any(c[0] in ('mdcat','glow','rich','bat') for c in s.calls()),s.errors()
+                    else:assert not any(c[0] in ('leaf','mdcat','glow','rich','bat') for c in s.calls()),s.errors()
                     before=len(s.calls());s.key(b'\x1bm');assert len(s.calls())==before
                     print('PASS',backend,'adapter and plain source (Glow/Rich use fixtures)',flush=True)
                 finally:s.close()

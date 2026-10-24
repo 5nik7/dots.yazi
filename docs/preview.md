@@ -11,9 +11,9 @@ preview = {
     platforms = { termux = { renderer = "chafa" } },
   },
   markdown = {
-    renderer = "mdcat",
+    renderer = "leaf",
     source = "bat",
-    args = { mdcat = {}, glow = {}, rich = {}, bat = {}, cat = {} },
+    args = { leaf = {}, mdcat = {}, glow = {}, rich = {}, bat = {}, cat = {} },
     platforms = {
       -- windows = { renderer = "glow", source = "default" },
     },
@@ -23,7 +23,7 @@ preview = {
 
 Both components default to `renderer = "default"`. Image renderers are `default` (Yazi's existing adapter) and `chafa`; Chafa's `symbols` defaults to `vhalf` and accepts its symbol expressions. The example changes only Termux image rendering. Image cache lookup, delay, preloaders and built-in image/SVG/ImageMagick fallback remain in use. Video and PDF previews are separate.
 
-Markdown renderers are `mdcat`, `glow`, `rich`, `bat` and `default`. Bat displays highlighted Markdown source, not formatted prose. The `source` renderer defaults to `bat` and accepts `bat`, `cat` or `default`. Plain `cat` mode reads text in Lua, needs no external executable, and displays escape characters literally. `default` delegates to Yazi's code preview. Selecting Bat for both modes produces the same presentation.
+Markdown renderers are `leaf`, `mdcat`, `glow`, `rich`, `bat` and `default`. Bat displays highlighted Markdown source, not formatted prose. The `source` renderer defaults to `bat` and accepts `bat`, `cat` or `default`. Plain `cat` mode reads text in Lua, needs no external executable, and displays escape characters literally. `default` delegates to Yazi's code preview. Selecting Bat for both modes produces the same presentation.
 
 Supported platform keys are `termux`, `wsl`, `linux`, `macos` and `windows`. Android or a nonempty `TERMUX_VERSION` selects Termux; Linux with `WSL_INTEROP` or `WSL_DISTRO_NAME` selects WSL; otherwise Yazi's target OS is used. Unrecognized OS names use base settings. Resolution is defaults, component options, then matching platform options. Argument lists are replaced, not concatenated; an empty list clears inherited arguments. Unknown options/platforms/renderers and malformed lists are setup errors.
 
@@ -57,7 +57,7 @@ Alt+m changes the current tab between its configured renderer and source rendere
 
 ## Rendering and fallback
 
-External commands run only in asynchronous preview jobs. They emit ANSI text into Yazi's pane at its current width; complete output is parsed before viewport scrolling to preserve styles. Paging, watch modes, terminal probing and inline image protocols are disabled. mdcat uses local resources only and explicitly disables inline images, including when its user configuration selects Kitty. Themes remain owned by each tool's normal configuration/environment; Dots does not install another renderer theme. Tested mdcat is the installed 2.18.0 build supporting `--image-protocol none`.
+External commands run only in asynchronous preview jobs. They emit ANSI text into Yazi's pane at its current width; complete output is parsed before viewport scrolling to preserve styles. Paging, watch modes, terminal probing and inline image protocols are disabled. mdcat uses local resources only and explicitly disables inline images, including when its user configuration selects Kitty. Themes remain owned by each tool's normal configuration/environment; Dots does not install another renderer theme. Leaf uses `--inline ansi:<pane-width>` to force ANSI output without its interactive UI; `args.leaf` can select a theme with `--theme`. Inline/width, watch, picker, editor, history, configuration, update and completion controls are reserved. Tested Leaf is 1.28.2. Tested mdcat is the installed 2.18.0 build supporting `--image-protocol none`.
 
 A missing/failed Markdown renderer falls back to `source`, then built-in code preview, without repeating a renderer. A warning is shown once per failed renderer per session. Empty successful output is valid. Each external invocation has a five-second wall-clock deadline, including waiting for exit after EOF; output over 8 MiB (stdout and stderr together, checked at line boundaries) is rejected and the child is killed. Markdown files larger than 2 MiB go straight to built-in code preview. Yazi cancels obsolete preview jobs; tab/URL/sequence checks also reject stale results before display. The existing built-in fallback keeps its own resource behavior.
 

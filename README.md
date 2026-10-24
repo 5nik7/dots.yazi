@@ -72,7 +72,7 @@ A self-contained configuration, including colors, separators, Git indicators, an
 
 ## Image and Markdown previews
 
-The optional `dots.preview` component adds platform-specific image rendering and Markdown renderer/source toggling. Configure `preview.image` and `preview.markdown` inside the existing setup table. The personal example uses Chafa `vhalf` on Termux, mdcat for Markdown, and Alt+m to toggle Bat source view independently in each tab. Glow, Rich CLI, plain text and Yazi's built-in source view are also supported. See [preview configuration, registration and limits](https://github.com/5nik7/dots.yazi/blob/main/docs/preview.md); preview support requires Yazi 26.9.1. Existing users without preview rules retain their previous behavior.
+The optional `dots.preview` component adds platform-specific image rendering and Markdown renderer/source toggling. Configure `preview.image` and `preview.markdown` inside the existing setup table. The personal example uses Chafa `vhalf` on Termux, Leaf for Markdown, and Alt+m to toggle Bat source view independently in each tab. mdcat, Glow, Rich CLI, plain text and Yazi's built-in source view are also supported. See [preview configuration, registration and limits](https://github.com/5nik7/dots.yazi/blob/main/docs/preview.md); preview support requires Yazi 26.9.1. Existing users without preview rules retain their previous behavior.
 
 ## Components and configuration
 

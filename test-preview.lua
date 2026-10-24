@@ -23,9 +23,22 @@ assert(not cfg.markdown({name='a.txt'}))
 
 local proc=dofile('preview-process.lua')
 local path='/- name 路径.md'
-for _,renderer in ipairs({'mdcat','glow','rich','bat','chafa'}) do
+for _,renderer in ipairs({'leaf','mdcat','glow','rich','bat','chafa'}) do
  local args=proc.arguments(renderer,{symbols='vhalf',args={}},40,20,path)
  assert(args[#args]==path and args[#args-1]=='--')
+end
+local leaf_opts={markdown={renderer='leaf',args={leaf={'--theme','forest'}},platforms={termux={args={leaf={}}},windows={renderer='mdcat'}}}}
+assert(cfg.resolve(leaf_opts,'linux').markdown.renderer=='leaf')
+assert(cfg.resolve(leaf_opts,'linux').markdown.args.leaf[2]=='forest')
+assert(#cfg.resolve(leaf_opts,'termux').markdown.args.leaf==0)
+assert(cfg.resolve(leaf_opts,'windows').markdown.renderer=='mdcat')
+fails(function() cfg.resolve({markdown={source='leaf'}},'linux') end)
+for _,flag in ipairs({'--inline','--inline=plain','--width','--width=40','--watch','-w','--editor','-evim','--fuzzy','--picker','--history','-Hlist:5','--last','-l','--config','--update','--auto-complete','--help','--version','--'}) do
+ fails(function() cfg.resolve({markdown={args={leaf={flag}}}},'linux') end)
+end
+for _,width in ipairs({8,40,120}) do
+ local args=proc.arguments('leaf',{args={leaf={'--theme','forest'}}},width,20,path)
+ assert(table.concat(args,'|')=='--theme|forest|--inline|ansi:'..width..'|--|'..path)
 end
 local calls,notices,widgets,emits={},{},{},{}
 local now,behavior=0,'ok'
@@ -34,8 +47,9 @@ for _,method in ipairs({'stdin','stdout','stderr','env'}) do fake_command[method
 function fake_command:arg(args) self.args=args;return self end
 function fake_command:spawn()
  calls[#calls+1]={name=self.name,args=self.args}
- if behavior=='missing' then return nil end
+ if behavior=='missing' or (behavior=='leaf-missing' and self.name=='leaf') then return nil end
  local mode=behavior
+ if mode=='leaf-failed' then mode=self.name=='leaf' and 'failed' or 'ok' end
  return {
   read_line_with=function(self)
    if mode=='stale' then cx.active.current.hovered={url='/other'} end
@@ -98,6 +112,19 @@ file.cha.len=proc.max_input+1;local count=#calls;preview:peek(job);assert(#calls
 local p=os.tmpname();local f=assert(io.open(p,'wb'));f:write('# SOURCE\27[31m\n');f:close()
 file.path=p;preview:setup({markdown={renderer='mdcat',source='cat'}});preview:entry({args={'toggle'}});preview:peek(job)
 assert(widgets[#widgets].ansi==false and widgets[#widgets].text:find('%^%['));os.remove(p)
+preview:setup({markdown={renderer='leaf',source='bat'}})
+preview:entry({args={'toggle'}}) -- return from the preceding plain source view
+behavior='ok';preview:peek(job);assert(calls[#calls].name=='leaf' and widgets[#widgets].ansi)
+preview:entry({args={'toggle'}});preview:peek(job);assert(calls[#calls].name=='bat')
+preview:entry({args={'toggle'}})
+local warned=#notices
+for _,mode in ipairs({'leaf-missing','leaf-failed'}) do
+ behavior=mode;local first=#calls+1;preview:peek(job)
+ assert(calls[first].name=='leaf' and calls[first+1].name=='bat' and #calls==first+1)
+ assert(widgets[#widgets].text:find('RENDER'))
+end
+assert(#notices==warned+1)
+behavior='ok'
 preview:setup({image={renderer='chafa'}});file.path='/a.png';job.args={'preview','image','svg'};preview:peek(job);assert(calls[#calls].name=='chafa')
 behavior='failed';preview:peek(job);assert(builtin_calls[#builtin_calls]=='image')
 require=saved_require
