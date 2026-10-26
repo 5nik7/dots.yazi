@@ -12,6 +12,7 @@ lua test-hover.lua
 lua test-ls-colors.lua
 python3 -B test-ls-colors.py
 python3 -B test-native.py
+python3 -B test-githead-native.py
 python3 -B test-preview-native.py
 python3 -B test-preview-native.py --backend leaf
 python3 -B test-theme-native.py
@@ -32,6 +33,20 @@ Termux evidence does not establish Windows behavior. No test installs dependenci
 
 Before reporting success, run Lua syntax checks and git diff --check. Verify all
 relative Markdown links. Missing tools must be reported as missing checks.
+
+Githead Lua cases cover absent/empty/populated `TMUX`, omitted/false/true
+`hide_in_tmux`, suppressed subscriptions and commands, queued results, cached
+render state and recoloring. The Githead native runner requires tmux, Yazi/ya,
+Python and Git. It uses private sockets and owned PTYs, Git/config/cache/state
+roots and a stub git-it. It checks enabled hiding inside tmux, visible output
+outside tmux and explicit opt-out inside tmux, including zero rendered header
+width, header query suppression, per-file fetching, theme refresh and 40/80/120
+columns. `--config-dir /path/to/dots/config/yazi` tests a copied personal config;
+only the tested option and probe's right-header component are selected in the
+fixture. The general native runner clears inherited tmux variables so its normal
+Git-header assertions are independent of the invoking terminal. Native Linux,
+WSL and Windows remain separate acceptance checks; no shell route or application
+destination changes are needed for this shared Lua option.
 
 The package regression needs Git, ya and Python 3.11+. It reproduces the rejected
 skill-directory symlinks, then retries `ya pkg add 5nik7/dots` with real discovery

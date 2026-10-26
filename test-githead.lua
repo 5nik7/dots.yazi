@@ -11,7 +11,13 @@ Url = function(path)
   return urls[path]
 end
 local cwd = "/fixture with spaces/-repo 路径"
-local head, subscriptions, save, calls, response, during_output
+local head, subscriptions, save, calls, response, during_output, emitted
+local original_getenv = os.getenv
+local tmux
+os.getenv = function(name)
+  if name == "TMUX" then return tmux end
+  return original_getenv(name)
+end
 local function output(text, success)
   return { stdout = text, status = { success = success ~= false } }
 end
@@ -36,19 +42,19 @@ Command = setmetatable({ PIPED = "pipe", NULL = "null" }, { __call = function(_,
   return cmd
 end })
 local function setup(options)
-  subscriptions, calls, during_output = {}, {}, nil
+  subscriptions, calls, during_output, emitted = {}, {}, nil, 0
   cx = { active = { current = { cwd = Url(cwd) } } }
   Dotline = { coloreds = { get = {} } }
   ui = { render = function() end }
   ps = { sub = function(event, fn) subscriptions[event] = fn end }
   ya = {
     sync = function(fn) save = fn; return function(...) return fn(head, ...) end end,
-    quote = function(s) return s end, emit = function() end,
+    quote = function(s) return s end, emit = function() emitted = emitted + 1 end,
   }
   head = dofile("githead.lua")
   head._id = "dots.githead"
   head:setup(options or {})
-  subscriptions.cd()
+  if subscriptions.cd then subscriptions.cd() end
 end
 local function refresh(info)
   response = info
@@ -120,5 +126,39 @@ assert(head.name == nil and head.output == nil and head.repo_info == nil)
 during_output = function() cx.active.current.cwd = Url("/elsewhere") end
 refresh(output('{"icon":"󰊤","owned":true}'))
 assert(head.name == nil and head.output == nil and head.repo_info == nil)
+-- TMUX detection is opt-in, sampled once at setup, and independent of themes.
+for _, environment in ipairs({ false, "", "/fixture/tmux.sock,123,0" }) do
+  for _, enabled in ipairs({ "omitted", false, true }) do
+    tmux = environment or nil
+    local options = {}
+    if enabled ~= "omitted" then options.hide_in_tmux = enabled end
+    setup(options)
+    local hidden = enabled == true and type(environment) == "string" and environment ~= ""
+    assert(head.hidden == hidden)
+    if hidden then
+      assert(next(subscriptions) == nil and emitted == 0)
+      -- Even a direct asynchronous route cannot run git or git-it.
+      head:entry({ args = { cwd, "1" } })
+      assert(#calls == 0)
+      -- A queued result and stale cached data must not restore the header.
+      head.request = 1
+      save(head, cwd, 1, "leaked", { branch = "main" })
+      assert(head.name == nil and head.output == nil)
+      head.cwd, head.name, head.output = cwd, "cached", { branch = "main" }
+      tmux = nil
+      head:recolor({ theme = { repo_color = "red", branch_color = "yellow" } })
+      assert(Dotline.coloreds.get.repo_name() == nil)
+      assert(Dotline.coloreds.get.githead() == nil)
+      assert(next(subscriptions) == nil and #calls == 0 and emitted == 0)
+    else
+      assert(subscriptions.cd and subscriptions.tab and emitted == 1)
+      refresh(nil)
+      label("-repo 路径", "blue")
+      assert(head.output.branch == "main" and #calls > 0)
+    end
+  end
+end
+os.getenv = original_getenv
 require = original_require
 print("dots: remote metadata, ownership colors, helper fallbacks, render purity and stale-result checks passed")
+print("dots: tmux option matrix, hidden jobs/results, setup-only detection and recoloring passed")

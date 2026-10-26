@@ -145,7 +145,7 @@ def run():
                 file.write('\n[[mgr.prepend_keymap]]\non = ' + json.dumps(key) + '\nrun = ' + json.dumps("cd " + str(target)) + '\n')
         (root / "outside/Downloads").mkdir()
         env = os.environ.copy()
-        for name in ("YAZI_ID", "YAZI_LEVEL", "APPDATA", "LOCALAPPDATA", "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
+        for name in ("TMUX", "TMUX_PANE", "YAZI_ID", "YAZI_LEVEL", "APPDATA", "LOCALAPPDATA", "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
             env.pop(name, None)
         env.update(
             HOME=str(root / "home"), XDG_CONFIG_HOME=str(root / "config-root"),

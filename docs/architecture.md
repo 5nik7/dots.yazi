@@ -4,6 +4,11 @@
 arguments. Dotline renders headers/status; hover supplies fitted path/link spans;
 githead keeps asynchronous Git results separate from command-free rendering.
 
+Githead samples `TMUX` once during setup when `hide_in_tmux` is enabled. Hidden
+headers retain empty getters and recoloring closures but install no refresh
+subscriptions. Module-level sync guards stop asynchronous jobs before subprocesses
+and reject queued results. The independent per-file Git fetcher remains enabled.
+
 `theme.lua` loads schema-1 Dots colors.json from a complete published generation.
 It validates identity, mode, color/style groups and LS_COLORS before swapping the
 snapshot. The state marker identifies the generation. Duplicate notifications do

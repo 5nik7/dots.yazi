@@ -1,8 +1,13 @@
 ---@diagnostic disable: undefined-global
 
+-- Async jobs must consult UI-owned setup state before starting any commands.
+local can_refresh = ya.sync(function(this)
+	return not this.hidden
+end)
+
 -- Repository name, remote metadata and status share one refresh generation.
 local save = ya.sync(function(this, cwd, request, name, output, repo_info)
-	if request ~= this.request or cx.active.current.cwd ~= Url(cwd) then
+	if this.hidden or request ~= this.request or cx.active.current.cwd ~= Url(cwd) then
 		return
 	end
 	this.cwd = cwd
@@ -37,6 +42,8 @@ end
 return {
 	setup = function(this, options)
 		options = options or {}
+		local tmux = os.getenv("TMUX")
+		this.hidden = options.hide_in_tmux == true and tmux ~= nil and tmux ~= ""
 		local repo_theme = options.theme or options
 		local repo_color = repo_theme.repo_color or "blue"
 		local repo_owned_color = repo_theme.repo_owned_color or repo_color
@@ -45,7 +52,7 @@ return {
 		local repo_symbol = options.repo_symbol or ""
 
 		function Dotline.coloreds.get:repo_name()
-			if not this.name or this.cwd ~= tostring(cx.active.current.cwd) then
+			if this.hidden or not this.name or this.cwd ~= tostring(cx.active.current.cwd) then
 				return nil
 			end
 			local info = this.repo_info
@@ -373,6 +380,7 @@ return {
 		end
 
 		function Dotline.coloreds.get:githead()
+			if this.hidden then return nil end
 			local repo = Dotline.coloreds.get.repo_name()
 			if not this.output then
 				return repo
@@ -426,6 +434,9 @@ return {
 			end
 		end
 
+		-- Keep getters and recoloring installed, but do no header refresh work.
+		if this.hidden then return end
+
 		local callback = function()
 			this.request = (this.request or 0) + 1
 			this.cwd, this.name, this.output, this.repo_info = nil, nil, nil, nil
@@ -452,7 +463,7 @@ return {
 	entry = function(_, job)
 		local args = job.args or job
 		local cwd, request = args[1], tonumber(args[2])
-		if not cwd or not request then
+		if not cwd or not request or not can_refresh() then
 			return
 		end
 

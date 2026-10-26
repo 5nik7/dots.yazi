@@ -58,6 +58,7 @@ require("dots"):setup({
     },
   },
   githead = {
+    hide_in_tmux = false, -- Opt in to hiding the entire group inside tmux.
     show_remote_icon = true,
     repo_color = "blue",
     repo_owned_color = "green",
@@ -86,7 +87,7 @@ The optional `dots.preview` component adds platform-specific image rendering and
 | `projects` | [projects.lua](projects.lua) | Saves, restores, deletes, and merges tab collections; sections are `event`, `save`, `last`, `merge`, and `notify`. |
 | `dotline` | [dotline.lua](dotline.lua) | Header/status renderer; preserves Yatline's section, component, separator, padding, style, permission, and layout options. |
 | `hover` | [hover.lua](hover.lua) | Registers `hover`, combining the current path, hovered item's Yazi icon and name, and link target; fits whole leading directories to available width. Per-part style sources and overrides control path, name, icon, arrow, target directory, and target basename; the icon inherits the name by default and is omitted when unavailable. |
-| `githead` | [githead.lua](githead.lua) | Registers `githead`, one colored component containing repository name and Git details separated by a space; repository options are `show_remote_icon`, `repo_color`, `repo_owned_color`, `repo_prefix`, and `repo_symbol`. Retains branch, remote, tag, commit, ahead/behind, stash, state, staged, unstaged, and untracked options. |
+| `githead` | [githead.lua](githead.lua) | Registers `githead`, one colored component containing repository name and Git details separated by a space; repository options are `hide_in_tmux` (default false), `show_remote_icon`, `repo_color`, `repo_owned_color`, `repo_prefix`, and `repo_symbol`. Retains branch, remote, tag, commit, ahead/behind, stash, state, staged, unstaged, and untracked options. |
 | `hostname_username` | [hostname-username.lua](hostname-username.lua) | Registers `hostname_username`; `mode` accepts `host`, `user`, or `both`, and `color` sets its foreground. Shown only when added to a Dotline section; returns no text on non-Unix platforms. |
 
 [toggle-pane.lua](toggle-pane.lua) is command-driven and needs no setup section. It restores the previous pane ratios when toggled again.
@@ -217,6 +218,8 @@ Repository-name options live in the `githead` setup section; there is no separat
 
 Each existing asynchronous Git refresh runs one local `git-it info --json` command to obtain the icon and ownership together. Rendering runs no commands. The plugin follows git-it's remote selection (branch remote, then origin), host aliases, and configured owners. GitHub, GitLab, and Bitbucket have host icons; unknown hosts and repositories without a remote use git-it's generic Git icon. Missing git-it, failed commands, or malformed metadata omit the icon and use the normal repository color. Only the validated icon and ownership boolean are retained, and both are cleared with the Git status when navigating.
 
+`githead.hide_in_tmux` defaults to `false`. Set it to `true` to hide the entire repository/icon/branch/status group when Yazi starts with a nonempty `TMUX` environment variable. Both `githead` and `repo_name` then return no content, and header refresh subscriptions and their Git/git-it queries are skipped. Per-file Git indicators and their fetcher stay enabled. Outside tmux, or with the option disabled, the existing display and refresh behavior remain available. Detection happens once during setup without invoking tmux; restart Yazi after changing the setting or launch environment. Theme refreshes preserve this choice. This setting belongs directly in `githead`, alongside `show_remote_icon`, rather than in its color-only `theme` table.
+
 Ownership means an exact configured host/namespace match, not authentication or write access. Configure git-it separately in `${XDG_CONFIG_HOME:-$HOME/.config}/git-it/config`, for example:
 
 ```gitconfig
@@ -253,6 +256,7 @@ lua test-hover.lua
 lua test-ls-colors.lua
 python3 -B test-ls-colors.py
 python3 -B test-native.py
+python3 -B test-githead-native.py
 ```
 
 The Lua fixtures check setup order, dispatcher arguments, fetch forwarding, pane restoration, combined Git refresh/stale-result rejection, host metadata validation and failure fallbacks, independent repository/branch colors, command-free redraws, responsive hover formatting, per-part sources/overrides/visibility and style isolation, and LS_COLORS parsing, precedence, resets, and hook fallback. The GNU ls comparison runner uses disposable filesystem fixtures and reports unsupported native hard-link creation separately; its matching remains covered by Lua fixtures. The Unix PTY test uses the included fixture config (or an explicit `--config-dir`) without replacing its hover settings and a temporary home/config/state/cache/runtime, isolated Git repository, and DDS socket directory. Only `dots.yazi` and a test probe are installed there. It checks real loader state, Git fetching and callbacks, installed git-it host/ownership rendering with test-owned GitHub/GitLab/Bitbucket/unknown/no-remote fixtures and host aliases, project save/load/deletion and merge event dispatch, folder rules, pane shortcuts, ANSI/indexed/RGB styles, separate symlink/target styles, reset-background preview spacing, filled cursor caps, native-style fallback, independent icon overrides, attribute removal, current-directory styling, and 40/80/160-column redraws. It requires Python, Git, git-it, and Yazi and does not install dependencies.

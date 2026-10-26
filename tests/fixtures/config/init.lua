@@ -194,6 +194,7 @@ require("dots"):setup({
   },
 
   githead = {
+    hide_in_tmux = false, -- Set true to hide the group and skip its queries in tmux.
     show_remote_icon = true,
     repo_color = "blue",
     repo_owned_color = "green",
